@@ -8,6 +8,7 @@
 
 import { normalise, shardFor, lookup, variants, shardFile } from './search-core.js';
 import * as bookmarks from './bookmarks.js';
+import * as speech from './speech.js';
 
 const DICT = 'dict';
 
@@ -232,11 +233,47 @@ function exampleNode(ja, en, word) {
   return node;
 }
 
+/**
+ * The 🔊 beside the headword. Hidden until the device admits to having an
+ * English voice, since a button that does nothing is worse than no button --
+ * and the answer is not known until the voice list settles, which on Chrome
+ * happens after the first result is already on screen.
+ */
+let speakSeq = 0;
+
+function speakButton(word) {
+  const btn = el('button', 'speak-btn', '🔊');
+  btn.type = 'button';
+  btn.hidden = true;
+  btn.setAttribute('aria-label', `「${word}」の発音を聞く`);
+  btn.title = '発音を聞く';
+  speech.ready().then((ok) => { btn.hidden = !ok; });
+
+  btn.addEventListener('click', async () => {
+    // Only one utterance plays at a time, so a later tap owns the highlight --
+    // the interrupted one must not switch it off on its way out.
+    const seq = ++speakSeq;
+    els.status.textContent = '';
+    btn.classList.add('is-speaking');
+    try {
+      await speech.speak(word);
+    } catch {
+      els.status.textContent = speech.needsNetwork()
+        ? 'この端末の英語音声はオンライン専用のため、再生できませんでした。'
+        : '音声を再生できませんでした。';
+    } finally {
+      if (seq === speakSeq) btn.classList.remove('is-speaking');
+    }
+  });
+  return btn;
+}
+
 function render(doc, correctedFrom) {
   els.results.innerHTML = '';
 
   const header = el('div', 'word-header');
   header.append(el('h1', 'word', doc.w));
+  header.append(speakButton(doc.w));
   header.append(starButton(doc));
   els.results.append(header);
 

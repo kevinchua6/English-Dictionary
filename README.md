@@ -60,6 +60,22 @@ are ranked for readability (word in base form, 4–14 words, not half of a
 dialogue) and phrasal headwords work — `give up` matches "Don't give up
 halfway."
 
+## Pronunciation
+
+The 🔊 beside a headword speaks it with the device's own speech synthesis. No
+audio is shipped or fetched: recorded clips for 346,355 headwords would dwarf
+the index, and hotlinking someone else's would put a third-party request on
+every lookup.
+
+The cost is that the voice belongs to the device, not to us. `web/speech.js`
+prefers an English voice that reports `localService`, so the audio keeps the
+same offline guarantee as the rest of the app; it falls back to a network voice
+rather than staying mute, and says so when one fails without a connection. A
+Japanese-locale phone frequently has no English voice data at all, so
+availability is resolved at runtime and the button stays hidden when the answer
+is no — which is why it is created hidden and revealed by `speech.ready()`
+rather than the other way round.
+
 ## Saved words
 
 The ★ beside a headword saves it to a review list (単語帳), reachable from the
@@ -160,3 +176,7 @@ attribution. `web/about.html` carries the user-facing attribution — keep it.
   them to the 語義 blocks below. Splitting them by sense would need
   word-sense-disambiguated sentences, which the source does not provide.
 - Lookup is English→Japanese only. Japanese input is not searched.
+- Pronunciation is synthesised, not recorded, and is not sense-aware: for
+  `record` or `present` the voice picks one stress pattern for the whole page.
+  There is no phonetic transcription — CMUdict would supply IPA for ~134k
+  headwords if that is ever wanted.

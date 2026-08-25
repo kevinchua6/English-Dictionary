@@ -386,6 +386,22 @@ main {
 .chip-danger { color: var(--danger); }
 .chip-danger:hover { background: color-mix(in srgb, var(--danger) 12%, transparent); }
 
+/* ------------------------------------------------------------ pronunciation */
+
+.speak-btn {
+  flex: none;
+  background: none;
+  border: 1px solid transparent;
+  color: var(--text-faint);
+  font-size: 1.3rem;
+  line-height: 1;
+  padding: 0.25rem 0.4rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.speak-btn:hover { background: var(--surface-2); }
+.speak-btn.is-speaking { background: var(--accent-soft); }
+
 /* --------------------------------------------------------------- bookmarks */
 
 .star-btn {
