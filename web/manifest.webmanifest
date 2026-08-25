@@ -1,0 +1,19 @@
+{
+  "name": "英和辞典 — 広告なし",
+  "short_name": "英和辞典",
+  "description": "広告のない無料の英和辞典。語義の説明は日本語。オフライン対応。",
+  "lang": "ja",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#14161a",
+  "theme_color": "#1b1d21",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

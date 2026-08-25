@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="英和辞典">
+  <rect width="512" height="512" rx="96" fill="#1f6feb"/>
+  <text x="256" y="322" font-size="248" font-weight="700" text-anchor="middle" fill="#ffffff"
+        font-family="'Hiragino Kaku Gothic ProN','Noto Sans JP','Yu Gothic UI',Meiryo,sans-serif">英</text>
+</svg>

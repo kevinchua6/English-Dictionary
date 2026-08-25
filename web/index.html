@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>英和辞典 — 広告なし</title>
+<meta name="description" content="広告のない無料の英和辞典。オフラインでも使えます。">
+<meta name="theme-color" content="#1b1d21">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <a class="brand" href="./" aria-label="ホーム">
+    <span class="brand-mark">英和</span>
+    <span class="brand-name">辞典</span>
+  </a>
+  <button id="themeToggle" class="icon-btn" type="button" aria-label="表示テーマを切り替える">◐</button>
+</header>
+
+<main>
+  <form id="searchForm" class="search" role="search" autocomplete="off">
+    <label class="sr-only" for="q">英単語を検索</label>
+    <input id="q" type="search" inputmode="latin" autocapitalize="none" autocorrect="off"
+           spellcheck="false" placeholder="英単語を入力（例：run, beautiful）"
+           aria-describedby="tagline" aria-controls="results">
+    <button type="submit" class="icon-btn search-btn" aria-label="検索">🔍</button>
+    <ul id="suggest" class="suggest" role="listbox" hidden></ul>
+  </form>
+
+  <p id="tagline" class="tagline">広告なし・無料・オフライン対応</p>
+
+  <div id="status" class="status" role="status" aria-live="polite"></div>
+  <div id="results" class="results"></div>
+
+  <section id="welcome" class="welcome">
+    <h2>使いかた</h2>
+    <p>英単語を入力すると、意味ごとに分けて日本語訳を表示します。語義の説明はすべて日本語です。</p>
+    <p class="examples">
+      例：
+      <button type="button" class="chip" data-word="run">run</button>
+      <button type="button" class="chip" data-word="beautiful">beautiful</button>
+      <button type="button" class="chip" data-word="charge">charge</button>
+      <button type="button" class="chip" data-word="commitment">commitment</button>
+    </p>
+    <p class="note">一度読み込んだ範囲はオフラインでも検索できます。</p>
+  </section>
+</main>
+
+<footer>
+  <a href="about.html">このサイトについて・出典</a>
+  <span class="dot">·</span>
+  <span id="dictDate"></span>
+</footer>
+
+<script src="app.js" type="module"></script>
+</body>
+</html>
