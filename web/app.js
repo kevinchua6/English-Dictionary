@@ -6,7 +6,7 @@
  * cached by the service worker, so repeated and offline lookups cost nothing.
  */
 
-import { normalise, shardFor, lookup } from './search-core.js';
+import { normalise, shardFor, lookup, variants, shardFile } from './search-core.js';
 import * as bookmarks from './bookmarks.js';
 
 const DICT = 'dict';
@@ -60,7 +60,7 @@ async function boot() {
 
 async function loadShard(name) {
   if (shardCache.has(name)) return shardCache.get(name);
-  const p = fetch(`${DICT}/${name}.json`)
+  const p = fetch(`${DICT}/${shardFile(name)}.json`)
     .then((r) => (r.ok ? r.json() : {}))
     .catch(() => ({}));
   shardCache.set(name, p);
@@ -181,6 +181,57 @@ function senseNode(sense, index) {
   return node;
 }
 
+/**
+ * The example sentence with the looked-up word marked.
+ *
+ * The build guarantees the word is in there, but not in which form -- "borrow"
+ * is matched by "borrowed" -- so the same variant logic that resolves a query
+ * finds it again here rather than the build spending bytes recording it.
+ */
+function highlightExample(sentence, word) {
+  const frag = document.createDocumentFragment();
+  const target = word.split(' ');
+  // Odd indices are word tokens, even ones the punctuation between them.
+  const parts = sentence.split(/([a-zA-Z']+)/);
+
+  for (let i = 0; i < parts.length; i++) {
+    const isWord = i % 2 === 1;
+    if (!isWord) {
+      frag.append(document.createTextNode(parts[i]));
+      continue;
+    }
+
+    // Only the head of a phrase inflects, matching tools/extract-examples.mjs.
+    const head = parts[i].toLowerCase();
+    let end = -1;
+    if (variants(head, irregular).includes(target[0])) {
+      end = i;
+      for (let t = 1; t < target.length; t++) {
+        const next = i + 2 * t;
+        if (parts[next]?.toLowerCase() !== target[t]) { end = -1; break; }
+        end = next;
+      }
+    }
+
+    if (end === -1) {
+      frag.append(document.createTextNode(parts[i]));
+      continue;
+    }
+    frag.append(el('mark', 'ex-hit', parts.slice(i, end + 1).join('')));
+    i = end;
+  }
+  return frag;
+}
+
+function exampleNode(ja, en, word) {
+  const node = el('li', 'example');
+  const sentence = el('p', 'ex-en');
+  sentence.append(highlightExample(en, word));
+  node.append(sentence);
+  node.append(el('p', 'ex-ja', ja));
+  return node;
+}
+
 function render(doc, correctedFrom) {
   els.results.innerHTML = '';
 
@@ -193,6 +244,19 @@ function render(doc, correctedFrom) {
     els.results.append(
       el('p', 'corrected', `「${correctedFrom}」の見出し語として「${doc.w}」を表示しています。`)
     );
+  }
+
+  // Examples key on the English headword, not on a sense, so they sit with the
+  // word itself. Three sentences is short enough not to push the senses down.
+  if (doc.x?.length) {
+    // Not 'examples' -- index.html already uses that class for the welcome
+    // chips row, which style.css lays out as a flex row.
+    const section = el('div', 'example-block');
+    section.append(el('h2', 'section-title', '例文'));
+    const list = el('ul', 'example-list');
+    for (const [ja, en] of doc.x) list.append(exampleNode(ja, en, doc.w));
+    section.append(list);
+    els.results.append(section);
   }
 
   if (doc.sn?.length) {

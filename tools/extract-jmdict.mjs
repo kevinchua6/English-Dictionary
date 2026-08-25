@@ -7,7 +7,9 @@
  */
 import fs from 'node:fs';
 
-const SRC = 'data/jmdict-eng-3.6.2.json';
+// The "examples" build: the same 218,577 entries as jmdict-eng, plus Tatoeba
+// sentence pairs. tools/extract-examples.mjs reads the same file.
+const SRC = 'data/jmdict-examples-eng-3.6.2.json';
 
 /**
  * Reduce a gloss to a search key: lowercase, drop parentheticals and the

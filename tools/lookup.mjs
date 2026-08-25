@@ -1,5 +1,6 @@
 /** Dev lookup against the built shards. Usage: node tools/lookup.mjs run */
 import fs from 'node:fs';
+import { shardFile } from '../web/search-core.js';
 
 const manifest = JSON.parse(fs.readFileSync('web/dict/manifest.json', 'utf8'));
 const tags = JSON.parse(fs.readFileSync('data/tags-ja.json', 'utf8'));
@@ -22,9 +23,9 @@ for (let d = manifest.maxPrefix; d >= manifest.minPrefix; d--) {
 }
 if (!shardName) { console.log('no shard'); process.exit(0); }
 
-const shard = JSON.parse(fs.readFileSync(`web/dict/${shardName}.json`, 'utf8'));
+const shard = JSON.parse(fs.readFileSync(`web/dict/${shardFile(shardName)}.json`, 'utf8'));
 const doc = shard[word];
-console.log(`shard=${shardName}.json  headwords in shard=${manifest.shards[shardName]}`);
+console.log(`shard=${shardFile(shardName)}.json  headwords in shard=${manifest.shards[shardName]}`);
 if (!doc) { console.log(`"${word}" not found`); process.exit(0); }
 
 const ja = (t) => tags[t]?.ja ?? t;

@@ -4,7 +4,7 @@
  */
 import http from 'node:http';
 import fs from 'node:fs';
-import { lookup } from '../web/search-core.js';
+import { lookup, variants, shardFile } from '../web/search-core.js';
 
 const BASE = process.argv[2] ?? 'http://127.0.0.1:8777';
 
@@ -35,7 +35,7 @@ delete irregular._comment;
 const shardCache = new Map();
 const loadShard = (name) => {
   if (!shardCache.has(name)) {
-    shardCache.set(name, getJson(`${BASE}/dict/${name}.json`).catch(() => ({})));
+    shardCache.set(name, getJson(`${BASE}/dict/${shardFile(name)}.json`).catch(() => ({})));
   }
   return shardCache.get(name);
 };
@@ -112,6 +112,37 @@ for (const [query, expect] of TESTS) {
 }
 
 console.log(`\nresolved: ${found}/${TESTS.length}   assertions passed: ${passed}/${TESTS.length}`);
+
+/* ------------------------------------------------------- example sentences */
+
+// The point of keying examples on the English side is that the sentence is
+// guaranteed to use the word. If that ever stops holding, the feature is worse
+// than nothing -- it shows a learner a sentence without the word they looked up.
+const EXAMPLE_TESTS = ['run', 'water', 'tired', 'angry', 'borrow', 'give up', 'holiday'];
+
+console.log('\nexample sentences:');
+let exChecked = 0;
+for (const query of EXAMPLE_TESTS) {
+  const hit = await lookup(ctx, query);
+  const doc = hit?.doc;
+  if (!doc?.x?.length) {
+    failures.push(`${query}: no example sentences`);
+    console.log(`MISS  ${query}`);
+    continue;
+  }
+  for (const [ja, en] of doc.x) {
+    exChecked++;
+    const target = doc.w.split(' ');
+    const tokens = en.toLowerCase().match(/[a-z']+/g) ?? [];
+    const uses = tokens.some((tok, i) =>
+      variants(tok, irregular).includes(target[0]) &&
+      target.every((part, t) => t === 0 || tokens[i + t] === part));
+    if (!uses) failures.push(`${query}: example does not use the word: ${en}`);
+    if (!ja) failures.push(`${query}: example missing Japanese: ${en}`);
+  }
+  console.log(`OK    ${query.padEnd(12)} ${doc.x.length} 例文 | ${doc.x[0][1]}`);
+}
+console.log(`\nexample sentences checked: ${exChecked}`);
 if (failures.length) {
   console.log('\nfailures:');
   for (const f of failures) console.log(`  ${f}`);

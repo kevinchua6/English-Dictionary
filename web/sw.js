@@ -1,10 +1,14 @@
 /**
  * Offline support. The app shell is precached; dictionary shards are cached
  * as they are used, so the words a reader actually looks up stay available
- * offline without ever downloading the full 85 MB index.
+ * offline without ever downloading the full 88 MB index.
+ *
+ * Shards are treated as immutable, so VERSION must be bumped whenever a build
+ * changes their contents -- otherwise a returning reader keeps serving the old
+ * ones from cache forever. (v2: example sentences.)
  */
 
-const VERSION = 'v1';
+const VERSION = 'v2';
 const SHELL = `shell-${VERSION}`;
 const DICT = `dict-${VERSION}`;
 

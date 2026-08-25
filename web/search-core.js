@@ -28,6 +28,23 @@ export function bucket(word, depth) {
   return out;
 }
 
+/**
+ * Windows reserves these basenames for character devices, whatever the
+ * extension or directory. "prn" is a real headword (pro re nata), so the bucket
+ * exists -- and while Node and Python open `prn.json` happily, git refuses to
+ * stage it, which makes the shard uncommittable.
+ */
+const RESERVED_BASENAME = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/;
+
+/**
+ * Filename stem for a shard bucket. The manifest stays keyed by bucket; only
+ * the file on disk is renamed. Every reader of web/dict/ must derive this the
+ * same way or the shard becomes unfetchable.
+ */
+export function shardFile(bucket) {
+  return RESERVED_BASENAME.test(bucket) ? `${bucket}-shard` : bucket;
+}
+
 /** Longest shard prefix present in the manifest for this word. */
 export function shardFor(manifest, word) {
   for (let d = manifest.maxPrefix; d >= manifest.minPrefix; d--) {

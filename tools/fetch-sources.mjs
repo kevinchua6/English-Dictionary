@@ -69,14 +69,16 @@ let body = '';
 for await (const chunk of res) body += chunk;
 const release = JSON.parse(body);
 
-// The English-only, full (non common-only) JSON build.
+// The English-only, full (non common-only) JSON build, in its "examples"
+// variant: identical entries plus the Tatoeba sentence pairs, so one download
+// feeds both extract-jmdict.mjs and extract-examples.mjs.
 const asset = release.assets.find(
-  (a) => /^jmdict-eng-\d/.test(a.name) && a.name.endsWith('.json.zip')
+  (a) => /^jmdict-examples-eng-\d/.test(a.name) && a.name.endsWith('.json.zip')
 );
-if (!asset) throw new Error('could not find jmdict-eng json asset in latest release');
+if (!asset) throw new Error('could not find jmdict-examples-eng json asset in latest release');
 
 console.log(`JMdict ${release.tag_name}: ${asset.name}`);
-const zipPath = path.join(DATA, 'jmdict-eng.json.zip');
+const zipPath = path.join(DATA, 'jmdict-examples-eng.json.zip');
 await download(asset.browser_download_url, zipPath);
 
 // The archive holds a single versioned .json; unzip with the platform tool.
@@ -93,7 +95,7 @@ if (!fs.existsSync(path.join(DATA, expected))) {
   }
 }
 
-const found = fs.readdirSync(DATA).filter((f) => /^jmdict-eng-.*\.json$/.test(f));
+const found = fs.readdirSync(DATA).filter((f) => /^jmdict-examples-eng-.*\.json$/.test(f));
 console.log(`\nJMdict JSON: ${found.join(', ')}`);
-console.log('\nNote: tools/extract-jmdict.mjs reads a pinned filename -- update SRC there');
-console.log('if the version changed, then run: npm run build');
+console.log('\nNote: extract-jmdict.mjs and extract-examples.mjs read a pinned filename --');
+console.log('update SRC in both if the version changed, then run: npm run build');

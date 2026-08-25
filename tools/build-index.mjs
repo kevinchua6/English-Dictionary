@@ -11,6 +11,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
+import { shardFile } from '../web/search-core.js';
 
 const OUT_DIR = 'web/dict';
 const MAX_ENTRIES_PER_HEADWORD = 60;
@@ -21,8 +22,15 @@ const KATAKANA_ONLY = /^[゠-ヿㇰ-ㇿｦ-ﾟ・ー\s]+$/;
 
 console.log('loading intermediates...');
 const entries = JSON.parse(fs.readFileSync('data/jm-entries.json', 'utf8'));
-const postings = JSON.parse(fs.readFileSync('data/jm-postings.json', 'utf8'));
-const wn = JSON.parse(fs.readFileSync('data/wn-senses.json', 'utf8'));
+
+// Maps, not plain objects: "constructor" is an English headword, and on a plain
+// object `postings["constructor"]` resolves up the prototype chain to a
+// function whether or not the key is present.
+const postings = new Map(Object.entries(JSON.parse(fs.readFileSync('data/jm-postings.json', 'utf8'))));
+const wn = new Map(Object.entries(JSON.parse(fs.readFileSync('data/wn-senses.json', 'utf8'))));
+// Keyed by English headword, so examples ride along in the shard the lookup
+// already fetches rather than costing a second request.
+const examples = new Map(Object.entries(JSON.parse(fs.readFileSync('data/examples.json', 'utf8'))));
 
 const MIN_PREFIX = 2;
 const MAX_PREFIX = 4;
@@ -96,15 +104,16 @@ function displayRecord(id, senseIdx, key) {
 }
 
 console.log('merging...');
-const headwords = new Set([...Object.keys(postings), ...Object.keys(wn)]);
+const headwords = new Set([...postings.keys(), ...wn.keys()]);
 console.log(`headwords: ${headwords.size.toLocaleString()}`);
 
 const shards = new Map();
 let senseGrouped = 0;
 let ungrouped = 0;
+let withExamples = 0;
 
 for (const word of headwords) {
-  const posting = postings[word] ?? [];
+  const posting = postings.get(word) ?? [];
 
   // Build display records, de-duplicated by entry id (keep the best-scoring).
   const byId = new Map();
@@ -129,7 +138,7 @@ for (const word of headwords) {
   const claimed = new Set();
   const senses = [];
 
-  for (const [idx, s] of (wn[word] ?? []).entries()) {
+  for (const [idx, s] of (wn.get(word) ?? []).entries()) {
     const matched = [];
     const seen = new Set();
     for (const lemma of s.jl ?? []) {
@@ -193,6 +202,11 @@ for (const word of headwords) {
     doc.o = leftover;
     ungrouped++;
   }
+  const ex = examples.get(word);
+  if (ex) {
+    doc.x = ex;
+    withExamples++;
+  }
 
   const b = bucket(word);
   if (!shards.has(b)) shards.set(b, {});
@@ -201,6 +215,7 @@ for (const word of headwords) {
 
 console.log(`headwords with Japanese sense groups: ${senseGrouped.toLocaleString()}`);
 console.log(`headwords with ungrouped entries    : ${ungrouped.toLocaleString()}`);
+console.log(`headwords with example sentences    : ${withExamples.toLocaleString()}`);
 
 // Split oversized shards deeper until each is small enough to fetch on demand.
 // Words that cannot be split further (identical prefixes) stay put.
@@ -233,7 +248,7 @@ const manifest = {};
 for (const [b, docs] of shards) {
   const json = JSON.stringify(docs);
   const gz = zlib.gzipSync(json, { level: 9 });
-  fs.writeFileSync(path.join(OUT_DIR, `${b}.json`), json);
+  fs.writeFileSync(path.join(OUT_DIR, `${shardFile(b)}.json`), json);
   rawTotal += json.length;
   gzTotal += gz.length;
   manifest[b] = Object.keys(docs).length;

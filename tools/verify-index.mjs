@@ -7,6 +7,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { shardFile } from '../web/search-core.js';
 
 const DIR = 'web/dict';
 const manifest = JSON.parse(fs.readFileSync(path.join(DIR, 'manifest.json'), 'utf8'));
@@ -35,10 +36,10 @@ let missingFile = 0;
 const samples = [];
 
 for (const shardName of Object.keys(manifest.shards)) {
-  const file = path.join(DIR, `${shardName}.json`);
+  const file = path.join(DIR, `${shardFile(shardName)}.json`);
   if (!fs.existsSync(file)) {
     missingFile++;
-    console.log(`MISSING FILE: ${shardName}.json`);
+    console.log(`MISSING FILE: ${shardFile(shardName)}.json`);
     continue;
   }
   const docs = JSON.parse(fs.readFileSync(file, 'utf8'));
