@@ -16,7 +16,13 @@
     <span class="brand-mark">英和</span>
     <span class="brand-name">辞典</span>
   </a>
-  <button id="themeToggle" class="icon-btn" type="button" aria-label="表示テーマを切り替える">◐</button>
+  <div class="topbar-actions">
+    <button id="bookmarksToggle" class="icon-btn" type="button"
+            aria-label="単語帳を開く" aria-expanded="false" aria-controls="bookmarks">
+      ★<span id="bookmarkCount" class="badge" hidden></span>
+    </button>
+    <button id="themeToggle" class="icon-btn" type="button" aria-label="表示テーマを切り替える">◐</button>
+  </div>
 </header>
 
 <main>
@@ -33,6 +39,20 @@
 
   <div id="status" class="status" role="status" aria-live="polite"></div>
   <div id="results" class="results"></div>
+
+  <section id="bookmarks" class="bookmarks" hidden aria-label="単語帳">
+    <div class="bookmarks-head">
+      <h2 class="section-title">単語帳</h2>
+      <div class="bookmarks-actions">
+        <button id="exportBookmarks" type="button" class="chip">JSONで書き出す</button>
+        <button id="clearBookmarks" type="button" class="chip chip-danger">すべて削除</button>
+      </div>
+    </div>
+    <ul id="bookmarkList" class="entries bookmark-list"></ul>
+    <p id="bookmarksEmpty" class="note" hidden>
+      まだ登録がありません。単語を検索して、見出しの★を押すと保存できます。
+    </p>
+  </section>
 
   <section id="welcome" class="welcome">
     <h2>使いかた</h2>

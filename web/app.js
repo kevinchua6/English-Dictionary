@@ -7,6 +7,7 @@
  */
 
 import { normalise, shardFor, lookup } from './search-core.js';
+import * as bookmarks from './bookmarks.js';
 
 const DICT = 'dict';
 
@@ -19,6 +20,13 @@ const els = {
   welcome: document.getElementById('welcome'),
   dictDate: document.getElementById('dictDate'),
   themeToggle: document.getElementById('themeToggle'),
+  bookmarksToggle: document.getElementById('bookmarksToggle'),
+  bookmarkCount: document.getElementById('bookmarkCount'),
+  bookmarks: document.getElementById('bookmarks'),
+  bookmarkList: document.getElementById('bookmarkList'),
+  bookmarksEmpty: document.getElementById('bookmarksEmpty'),
+  exportBookmarks: document.getElementById('exportBookmarks'),
+  clearBookmarks: document.getElementById('clearBookmarks'),
 };
 
 let manifest = null;
@@ -63,6 +71,7 @@ async function loadShard(name) {
 
 async function search(rawInput) {
   const query = normalise(rawInput);
+  closeBookmarks();
   els.welcome.hidden = true;
   hideSuggest();
 
@@ -70,6 +79,12 @@ async function search(rawInput) {
     els.results.innerHTML = '';
     els.status.textContent = '';
     els.welcome.hidden = false;
+    return;
+  }
+
+  // A saved word can be tapped before the index has finished loading.
+  if (!manifest) {
+    els.status.textContent = '辞書データを読み込んでいます…';
     return;
   }
 
@@ -171,6 +186,7 @@ function render(doc, correctedFrom) {
 
   const header = el('div', 'word-header');
   header.append(el('h1', 'word', doc.w));
+  header.append(starButton(doc));
   els.results.append(header);
 
   if (correctedFrom) {
@@ -234,6 +250,146 @@ async function prefixMatches(prefix, limit) {
   }
   return out.sort((a, b) => a.length - b.length || (a < b ? -1 : 1)).slice(0, limit);
 }
+
+/* -------------------------------------------------------------- bookmarks */
+
+/** A short Japanese reminder of what the word meant, for the review list. */
+function previewJa(doc) {
+  const words = [];
+  for (const s of doc.sn ?? []) {
+    for (const e of s.e ?? []) if (!words.includes(e.w)) words.push(e.w);
+    for (const w of s.jl ?? []) if (!words.includes(w)) words.push(w);
+    if (words.length >= 3) break;
+  }
+  for (const e of doc.o ?? []) {
+    if (words.length >= 3) break;
+    if (!words.includes(e.w)) words.push(e.w);
+  }
+  return words.slice(0, 3).join('、');
+}
+
+function setStarState(btn, saved) {
+  btn.textContent = saved ? '★' : '☆';
+  btn.classList.toggle('is-on', saved);
+  btn.setAttribute('aria-pressed', String(saved));
+  btn.setAttribute('aria-label', saved ? '単語帳から削除' : '単語帳に保存');
+  btn.title = saved ? '単語帳から削除' : '単語帳に保存';
+}
+
+function starButton(doc) {
+  const btn = el('button', 'star-btn');
+  btn.type = 'button';
+  btn.dataset.word = doc.w;
+  setStarState(btn, bookmarks.has(doc.w));
+  btn.addEventListener('click', () => {
+    setStarState(btn, bookmarks.toggle(doc.w, previewJa(doc)));
+    refreshBookmarkCount();
+  });
+  return btn;
+}
+
+function refreshBookmarkCount() {
+  const n = bookmarks.count();
+  els.bookmarkCount.textContent = n > 99 ? '99+' : String(n);
+  els.bookmarkCount.hidden = n === 0;
+  els.bookmarksToggle.classList.toggle('is-on', n > 0);
+}
+
+function bookmarkNode(b) {
+  const node = el('li', 'entry bookmark');
+
+  const head = el('div', 'entry-head');
+  const open = el('button', 'bookmark-word', b.w);
+  open.type = 'button';
+  open.addEventListener('click', () => { els.q.value = b.w; search(b.w); });
+  head.append(open);
+  if (b.ja) head.append(el('span', 'bookmark-ja', b.ja));
+  node.append(head);
+
+  const drop = el('button', 'star-btn star-small is-on', '★');
+  drop.type = 'button';
+  drop.title = '単語帳から削除';
+  drop.setAttribute('aria-label', `「${b.w}」を単語帳から削除`);
+  drop.addEventListener('click', () => {
+    bookmarks.remove(b.w);
+    refreshBookmarkCount();
+    renderBookmarks();
+    // The word on screen may be the one just dropped; keep its star honest.
+    const shown = els.results.querySelector(`.star-btn[data-word="${CSS.escape(b.w)}"]`);
+    if (shown) setStarState(shown, false);
+  });
+  node.append(drop);
+
+  return node;
+}
+
+function renderBookmarks() {
+  const list = bookmarks.all();
+  els.bookmarkList.innerHTML = '';
+  for (const b of list) els.bookmarkList.append(bookmarkNode(b));
+  els.bookmarksEmpty.hidden = list.length > 0;
+  els.exportBookmarks.disabled = list.length === 0;
+  els.clearBookmarks.disabled = list.length === 0;
+  // Also covers another tab having saved something since this one loaded.
+  refreshBookmarkCount();
+}
+
+function openBookmarks() {
+  renderBookmarks();
+  els.bookmarks.hidden = false;
+  els.welcome.hidden = true;
+  els.results.hidden = true;
+  els.bookmarksToggle.setAttribute('aria-expanded', 'true');
+  els.bookmarksToggle.setAttribute('aria-label', '単語帳を閉じる');
+  scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function closeBookmarks() {
+  if (els.bookmarks.hidden) return;
+  els.bookmarks.hidden = true;
+  els.results.hidden = false;
+  els.welcome.hidden = els.results.childNodes.length > 0;
+  els.bookmarksToggle.setAttribute('aria-expanded', 'false');
+  els.bookmarksToggle.setAttribute('aria-label', '単語帳を開く');
+}
+
+/** Save the list as a JSON file, entirely client-side. */
+function downloadBookmarks() {
+  const blob = new Blob([JSON.stringify(bookmarks.exportData(), null, 2)], {
+    type: 'application/json',
+  });
+  const url = URL.createObjectURL(blob);
+  const a = el('a');
+  a.href = url;
+  a.download = bookmarks.exportFilename();
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// Saved words live in localStorage alone, so the badge is correct before -- and
+// even without -- the dictionary index.
+refreshBookmarkCount();
+
+els.bookmarksToggle.addEventListener('click', () => {
+  if (els.bookmarks.hidden) openBookmarks();
+  else closeBookmarks();
+});
+
+els.exportBookmarks.addEventListener('click', downloadBookmarks);
+
+els.clearBookmarks.addEventListener('click', () => {
+  if (!confirm('単語帳をすべて削除します。よろしいですか？')) return;
+  bookmarks.clear();
+  refreshBookmarkCount();
+  renderBookmarks();
+  for (const s of els.results.querySelectorAll('.star-btn')) setStarState(s, false);
+});
+
+addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !els.bookmarks.hidden) closeBookmarks();
+});
 
 /* ------------------------------------------------------------ suggestions */
 

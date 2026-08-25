@@ -12,6 +12,8 @@
   --accent-soft: #e8f0fe;
   --common: #0f7b46;
   --common-soft: #e2f4ea;
+  --star: #c8890a;
+  --danger: #b3261e;
   --radius: 10px;
   --maxw: 44rem;
 }
@@ -28,6 +30,8 @@
   --accent-soft: #1d2a3f;
   --common: #63d19b;
   --common-soft: #163024;
+  --star: #f2b83c;
+  --danger: #f2837c;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -43,6 +47,8 @@
     --accent-soft: #1d2a3f;
     --common: #63d19b;
     --common-soft: #163024;
+    --star: #f2b83c;
+    --danger: #f2837c;
   }
 }
 
@@ -115,6 +121,26 @@ body {
   cursor: pointer;
 }
 .icon-btn:hover { background: var(--surface-2); color: var(--text); }
+.icon-btn.is-on { color: var(--star); }
+
+.topbar-actions { display: flex; align-items: center; gap: 0.15rem; }
+
+#bookmarksToggle { position: relative; }
+
+.badge {
+  position: absolute;
+  top: 0.05rem;
+  right: 0.05rem;
+  min-width: 1.05rem;
+  padding: 0 0.2rem;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1.05rem;
+  text-align: center;
+}
 
 main {
   max-width: var(--maxw);
@@ -187,10 +213,17 @@ main {
 
 /* ----------------------------------------------------------------- results */
 
-.word-header { margin: 0.5rem 0 1.5rem; }
+.word-header {
+  margin: 0.5rem 0 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
 
 .word {
   margin: 0;
+  flex: 1;
+  min-width: 0;
   font-size: 2.1rem;
   line-height: 1.2;
   letter-spacing: -0.01em;
@@ -315,6 +348,55 @@ main {
   cursor: pointer;
 }
 .chip:hover { background: var(--accent-soft); }
+.chip:disabled { color: var(--text-faint); cursor: default; background: var(--surface); }
+.chip-danger { color: var(--danger); }
+.chip-danger:hover { background: color-mix(in srgb, var(--danger) 12%, transparent); }
+
+/* --------------------------------------------------------------- bookmarks */
+
+.star-btn {
+  flex: none;
+  background: none;
+  border: 1px solid transparent;
+  color: var(--text-faint);
+  font-size: 1.5rem;
+  line-height: 1;
+  padding: 0.25rem 0.4rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.star-btn:hover { background: var(--surface-2); color: var(--star); }
+.star-btn.is-on { color: var(--star); }
+.star-small { font-size: 1.15rem; align-self: center; }
+
+.bookmarks-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.bookmarks-head .section-title { flex: 1; margin-top: 1rem; }
+.bookmarks-actions { display: flex; gap: 0.45rem; flex-wrap: wrap; }
+
+.bookmark { display: flex; align-items: flex-start; gap: 0.5rem; }
+.bookmark .entry-head { flex: 1; min-width: 0; }
+
+.bookmark-word {
+  font: inherit;
+  font-size: 1.2rem;
+  font-weight: 600;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  cursor: pointer;
+  text-align: left;
+  word-break: break-word;
+}
+.bookmark-word:hover { text-decoration: underline; }
+
+.bookmark-ja { color: var(--text-dim); font-size: 0.95rem; }
 
 /* ----------------------------------------------------------------- welcome */
 

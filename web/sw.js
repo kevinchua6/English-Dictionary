@@ -15,6 +15,7 @@ const SHELL_FILES = [
   'style.css',
   'app.js',
   'search-core.js',
+  'bookmarks.js',
   'tags.json',
   'irregular.json',
   'icon.svg',

@@ -39,6 +39,16 @@ Two ranking decisions matter more than they sound:
 Inflected input is handled by suffix stripping plus a table of irregular forms,
 so `ran`, `ate`, `children`, `stopped`, `happier` and `knives` all resolve.
 
+## Saved words
+
+The ★ beside a headword saves it to a review list (単語帳), reachable from the
+top bar. Each saved word keeps a short Japanese gloss so the list is readable on
+its own, and the whole list exports as a versioned JSON file.
+
+It lives in `localStorage` and nowhere else. There is no account to attach it to
+and no server to sync it with, which is the point — but it also means the list is
+per-browser and clearing site data erases it, so the export is the backup.
+
 ## Layout
 
 ```
@@ -68,6 +78,7 @@ building.
 npm run check:tags    # all 266 JMdict tags have a Japanese label
 npm run check:index   # all 346,355 headwords resolve to the shard they live in
 npm run test:e2e      # search assertions over HTTP (needs `npm run serve`)
+npm run test:bookmarks # saved-words store, against a localStorage stub
 npm run lookup run    # inspect one entry from the built index
 ```
 
