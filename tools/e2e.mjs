@@ -120,8 +120,12 @@ console.log(`\nresolved: ${found}/${TESTS.length}   assertions passed: ${passed}
 // than nothing -- it shows a learner a sentence without the word they looked up.
 const EXAMPLE_TESTS = ['run', 'water', 'tired', 'angry', 'borrow', 'give up', 'holiday'];
 
+/** Mirrors MAX_PER_HEADWORD in tools/extract-examples.mjs. */
+const EXAMPLE_CAP = 10;
+
 console.log('\nexample sentences:');
 let exChecked = 0;
+let withTail = 0;
 for (const query of EXAMPLE_TESTS) {
   const hit = await lookup(ctx, query);
   const doc = hit?.doc;
@@ -130,6 +134,18 @@ for (const query of EXAMPLE_TESTS) {
     console.log(`MISS  ${query}`);
     continue;
   }
+
+  // Past three the client hides the rest behind もっと見る, and the cap is what
+  // keeps a common word from carrying a page of sentences into its shard.
+  if (doc.x.length > EXAMPLE_CAP) {
+    failures.push(`${query}: ${doc.x.length} examples exceeds the cap of ${EXAMPLE_CAP}`);
+  }
+  if (doc.x.length > 3) withTail++;
+
+  // The same English sentence twice reads as a bug, whatever its Japanese.
+  const distinct = new Set(doc.x.map(([, en]) => en));
+  if (distinct.size !== doc.x.length) failures.push(`${query}: repeats an example sentence`);
+
   for (const [ja, en] of doc.x) {
     exChecked++;
     const target = doc.w.split(' ');
@@ -142,7 +158,12 @@ for (const query of EXAMPLE_TESTS) {
   }
   console.log(`OK    ${query.padEnd(12)} ${doc.x.length} 例文 | ${doc.x[0][1]}`);
 }
-console.log(`\nexample sentences checked: ${exChecked}`);
+// A word as common as these having nothing behind もっと見る would mean the
+// build stopped keeping the tail, which no per-sentence assertion would catch.
+if (!withTail) failures.push('no test word carries more than three examples');
+
+console.log(`\nexample sentences checked: ${exChecked}` +
+  `   with a もっと見る tail: ${withTail}/${EXAMPLE_TESTS.length}`);
 if (failures.length) {
   console.log('\nfailures:');
   for (const f of failures) console.log(`  ${f}`);

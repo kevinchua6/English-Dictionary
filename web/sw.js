@@ -1,17 +1,19 @@
 /**
  * Offline support. The app shell is precached; dictionary shards are cached
  * as they are used, so the words a reader actually looks up stay available
- * offline without ever downloading the full 88 MB index.
+ * offline without ever downloading the full 90 MB index.
  *
  * Shards are treated as immutable, so a build that changes their contents needs
  * the cache dropped -- otherwise a returning reader keeps serving the old ones
  * forever. Two things do that: bumping VERSION here, and the client noticing a
  * new `build` stamp in the manifest (see purgeStaleShards in app.js). The second
  * is what covers a rebuild deployed without a VERSION bump, so the manifest is
- * the one file that must never be answered from a stale cache. (v2: examples.)
+ * the one file that must never be answered from a stale cache. (v2: examples.
+ * v4: more examples per word, behind もっと見る -- app.js changed, so the shell
+ * needs replacing and not just the shards.)
  */
 
-const VERSION = 'v3';
+const VERSION = 'v4';
 const SHELL = `shell-${VERSION}`;
 const DICT = `dict-${VERSION}`;
 

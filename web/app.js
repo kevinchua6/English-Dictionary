@@ -275,6 +275,47 @@ function exampleNode(ja, en, word) {
 }
 
 /**
+ * How many sentences stand on the page unasked. The build ranks the list, so
+ * these are the best ones and the rest are worth a tap rather than the vertical
+ * space -- a common word carries ten, which would otherwise push 語義 off the
+ * first screen. Matches VISIBLE in tools/extract-examples.mjs.
+ */
+const VISIBLE_EXAMPLES = 3;
+
+function exampleSection(doc) {
+  // Not 'examples' -- index.html already uses that class for the welcome
+  // chips row, which style.css lays out as a flex row.
+  const section = el('div', 'example-block');
+  section.append(el('h2', 'section-title', '例文'));
+
+  const list = el('ul', 'example-list');
+  for (const [ja, en] of doc.x.slice(0, VISIBLE_EXAMPLES)) {
+    list.append(exampleNode(ja, en, doc.w));
+  }
+  section.append(list);
+
+  const rest = doc.x.slice(VISIBLE_EXAMPLES);
+  if (!rest.length) return section;
+
+  const more = el('button', 'chip more-examples', `もっと見る（あと${rest.length}件）`);
+  more.type = 'button';
+  more.addEventListener('click', () => {
+    const first = list.children.length;
+    for (const [ja, en] of rest) list.append(exampleNode(ja, en, doc.w));
+
+    // The button is leaving, so hand the focus to what it revealed rather than
+    // dropping it to the top of the document.
+    const revealed = list.children[first];
+    more.remove();
+    revealed.tabIndex = -1;
+    revealed.focus();
+  });
+  section.append(more);
+
+  return section;
+}
+
+/**
  * The 🔊 beside the headword. Hidden until the device admits to having an
  * English voice, since a button that does nothing is worse than no button --
  * and the answer is not known until the voice list settles, which on Chrome
@@ -325,17 +366,8 @@ function render(doc, correctedFrom) {
   }
 
   // Examples key on the English headword, not on a sense, so they sit with the
-  // word itself. Three sentences is short enough not to push the senses down.
-  if (doc.x?.length) {
-    // Not 'examples' -- index.html already uses that class for the welcome
-    // chips row, which style.css lays out as a flex row.
-    const section = el('div', 'example-block');
-    section.append(el('h2', 'section-title', '例文'));
-    const list = el('ul', 'example-list');
-    for (const [ja, en] of doc.x) list.append(exampleNode(ja, en, doc.w));
-    section.append(list);
-    els.results.append(section);
-  }
+  // word itself.
+  if (doc.x?.length) els.results.append(exampleSection(doc));
 
   if (doc.sn?.length) {
     const section = el('div', 'senses');

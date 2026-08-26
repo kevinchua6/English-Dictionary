@@ -13,6 +13,10 @@
  *
  * Reads:  the JMdict examples build, plus the headword sets from passes 1 and 2
  * Emits:  data/examples.json  english headword -> [[japanese, english], ...]
+ *
+ * The list is ranked, and the client shows the first three with the rest behind
+ * a もっと見る button, so order carries meaning here: index 0 is the sentence a
+ * reader sees first.
  */
 import fs from 'node:fs';
 import { pathToFileURL } from 'node:url';
@@ -20,7 +24,23 @@ import { pathToFileURL } from 'node:url';
 const { variants } = await import(pathToFileURL('web/search-core.js').href);
 
 const SRC = 'data/jmdict-examples-eng-3.6.2.json';
-const MAX_PER_HEADWORD = 3;
+
+/**
+ * The page shows VISIBLE sentences and puts the rest one tap behind もっと見る,
+ * so the cap is how many are worth carrying in the shard rather than how many
+ * are worth showing at once. Ten costs ~3 MB across the whole index; 5,451
+ * headwords have a fourth sentence to give.
+ */
+const VISIBLE = 3;
+const MAX_PER_HEADWORD = 10;
+
+/**
+ * Floor for the sentences past the visible three. The leading three are the
+ * best the source has and ship whatever they score, but an extra only earns
+ * its bytes if it is still readable — this is what drops the dialogue halves
+ * and the run-ons that rank last.
+ */
+const MIN_EXTRA_SCORE = 20;
 
 /** Longest token window considered, so phrasal headwords ("give up") match. */
 const MAX_PHRASE = 3;
@@ -108,19 +128,37 @@ for (const [ja, en] of pairs.values()) {
 console.log('ranking...');
 const out = {};
 let slots = 0;
+let extras = 0;
 for (const [key, list] of index) {
   slots += list.length;
-  out[key] = list
-    .sort((a, b) => b.s - a.s || a.en.length - b.en.length)
-    .slice(0, MAX_PER_HEADWORD)
-    .map((x) => [x.ja, x.en]);
+  const ranked = list.sort((a, b) => b.s - a.s || a.en.length - b.en.length);
+
+  // Tatoeba holds the same English sentence under several ids, each with its
+  // own Japanese. Deduped by id these are distinct pairs, but on the page they
+  // read as the list repeating itself, so the English side decides.
+  const kept = [];
+  const seen = new Set();
+  for (const x of ranked) {
+    if (kept.length >= MAX_PER_HEADWORD) break;
+    // Sorted descending, so the first one under the floor ends the tail.
+    if (kept.length >= VISIBLE && x.s < MIN_EXTRA_SCORE) break;
+    if (seen.has(x.en)) continue;
+    seen.add(x.en);
+    kept.push([x.ja, x.en]);
+  }
+  if (kept.length > VISIBLE) extras += kept.length - VISIBLE;
+  out[key] = kept;
 }
 
 fs.writeFileSync('data/examples.json', JSON.stringify(out));
 
 const size = fs.statSync('data/examples.json').size;
-console.log(`\nheadwords with examples : ${index.size.toLocaleString()}`);
-console.log(`candidate slots         : ${slots.toLocaleString()}`);
+const withExtras = Object.values(out).filter((v) => v.length > VISIBLE).length;
+
+console.log(`\nheadwords with examples  : ${index.size.toLocaleString()}`);
+console.log(`candidate slots          : ${slots.toLocaleString()}`);
 console.log(`kept (max ${MAX_PER_HEADWORD}/headword) : ` +
   `${Object.values(out).reduce((a, b) => a + b.length, 0).toLocaleString()}`);
-console.log(`data/examples.json      : ${(size / 1e6).toFixed(1)} MB`);
+console.log(`behind もっと見る         : ${extras.toLocaleString()} ` +
+  `across ${withExtras.toLocaleString()} headwords`);
+console.log(`data/examples.json       : ${(size / 1e6).toFixed(1)} MB`);

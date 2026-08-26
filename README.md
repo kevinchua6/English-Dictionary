@@ -41,9 +41,22 @@ so `ran`, `ate`, `children`, `stopped`, `happier` and `knives` all resolve.
 
 ## Example sentences
 
-19,821 headwords carry up to three Tatoeba sentence pairs, English first with
+19,820 headwords carry up to ten Tatoeba sentence pairs, English first with
 the Japanese underneath — the reader is learning the English, so that is the
 side that leads. The looked-up word is highlighted in the English.
+
+Three are on the page and the rest are one tap behind もっと見る, because ten
+sentences would push 語義 off the first screen for exactly the common words
+whose senses matter most. The list is ranked, so the three shown are the best
+ones rather than the first three the source happened to yield. 5,288 headwords
+have a tail; the other 14,532 have three or fewer sentences to give.
+
+The sentences past the third have to clear a readability floor the leading
+three do not — those three ship whatever they score, since the alternative is
+showing nothing, but an extra only earns its bytes if it is still worth
+reading. Sentences are also deduplicated on the English side: Tatoeba stores
+one English sentence under several ids with different Japanese, which are
+distinct pairs to the build and a list repeating itself to the reader.
 
 **These are keyed on the English headword, not the Japanese one.** JMdict ships
 the same pairs attached to Japanese senses, but the English side is a
@@ -52,10 +65,10 @@ English word: 経営する is glossed "run", and its example translates as "He
 **manages** a company." Keyed the Japanese way, 52.8% of attachments would show
 a sentence that never uses the word the reader looked up. Indexing the English
 side instead makes containment a property of the build — `tools/e2e.mjs`
-asserts it, and all 36,767 stored sentences satisfy it.
+asserts it, and all 60,313 stored sentences satisfy it.
 
 The trade is coverage: only words appearing in everyday Tatoeba sentences get
-examples, which is why 19,821 headwords have them and 326,534 do not. Sentences
+examples, which is why 19,820 headwords have them and 326,535 do not. Sentences
 are ranked for readability (word in base form, 4–14 words, not half of a
 dialogue) and phrasal headwords work — `give up` matches "Don't give up
 halfway."
@@ -106,7 +119,7 @@ shedding the oldest half rather than by imposing a cap up front.
 data/          upstream sources + build intermediates (gitignored)
 tools/         the build pipeline and its checks
 web/           the deployable static site
-web/dict/      3,358 generated index shards (88 MB raw, ~32 MB gzipped)
+web/dict/      3,382 generated index shards (90 MB raw, ~33 MB gzipped)
 ```
 
 ## Build
@@ -151,10 +164,10 @@ must go through `shardFile()`.
 ## How delivery works
 
 The index is split into prefix shards (`ru.json`, `comp.json`, …), sized so a
-lookup fetches ~9 KB gzipped on average. Shards are split deeper until none is
+lookup fetches ~10 KB gzipped on average. Shards are split deeper until none is
 oversized. The service worker precaches the app shell and caches shards as they
 are used, so words a reader actually looks up stay available offline without
-downloading the full 85 MB.
+downloading the full 90 MB.
 
 Cached shards belong to the build that produced them. `npm run build` stamps
 `build` into `web/dict/manifest.json`, the client remembers the stamp of the
@@ -194,9 +207,11 @@ attribution. `web/about.html` carries the user-facing attribution — keep it.
 - Only dictionary-form and common inflections resolve. Multi-word phrases work
   only when JMdict or WordNet has that exact phrase.
 - Example sentences attach to the headword, not to a sense. For a polysemous
-  word the three shown may all illustrate the same meaning, and nothing links
+  word the ones shown may all illustrate the same meaning, and nothing links
   them to the 語義 blocks below. Splitting them by sense would need
-  word-sense-disambiguated sentences, which the source does not provide.
+  word-sense-disambiguated sentences, which the source does not provide. Ten
+  sentences make a wrong-sense run less likely than three did, but only by
+  accident.
 - Lookup is English→Japanese only. Japanese input is not searched.
 - Pronunciation is synthesised, not recorded, and is not sense-aware: for
   `record` or `present` the voice picks one stress pattern for the whole page.
