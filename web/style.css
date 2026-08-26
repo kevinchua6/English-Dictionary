@@ -152,11 +152,13 @@ main {
 
 .search { position: relative; display: flex; gap: 0.5rem; }
 
+.search-field { position: relative; display: flex; flex: 1; min-width: 0; }
+
 .search input {
   flex: 1;
   min-width: 0;
   font-size: 1.15rem;
-  padding: 0.85rem 1rem;
+  padding: 0.85rem 2.6rem 0.85rem 1rem;
   border: 1.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
@@ -169,6 +171,31 @@ main {
   background: var(--bg);
 }
 .search input::placeholder { color: var(--text-faint); }
+/* The button below is the clear affordance; WebKit's own would duplicate it. */
+.search input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+
+.clear-btn {
+  position: absolute;
+  top: 50%;
+  right: 0.35rem;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--text-faint);
+  font-size: 1.25rem;
+  line-height: 1;
+  font-family: inherit;
+  cursor: pointer;
+}
+.clear-btn:hover { background: var(--surface-2); color: var(--text); }
+/* `display: flex` above would otherwise beat the UA rule for [hidden]. */
+.clear-btn[hidden] { display: none; }
 
 .search-btn {
   border: 1.5px solid var(--border);

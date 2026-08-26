@@ -35,7 +35,19 @@ const els = {
   bookmarksEmpty: document.getElementById('bookmarksEmpty'),
   exportBookmarks: document.getElementById('exportBookmarks'),
   clearBookmarks: document.getElementById('clearBookmarks'),
+  clearQuery: document.getElementById('clearQuery'),
 };
+
+/** The ✕ is only there to be pressed when there is something to clear. */
+function syncClearButton() {
+  els.clearQuery.hidden = els.q.value === '';
+}
+
+/** Every write to the search box goes through here, so ✕ tracks the value. */
+function setQuery(value) {
+  els.q.value = value;
+  syncClearButton();
+}
 
 let manifest = null;
 let tags = {};
@@ -88,7 +100,7 @@ async function boot() {
 
   const initial = new URLSearchParams(location.search).get('q');
   if (initial) {
-    els.q.value = initial;
+    setQuery(initial);
     search(initial);
   }
 }
@@ -402,7 +414,7 @@ async function renderNotFound(query) {
       const li = el('li');
       const b = el('button', 'chip', w);
       b.type = 'button';
-      b.addEventListener('click', () => { els.q.value = w; search(w); });
+      b.addEventListener('click', () => { setQuery(w); search(w); });
       li.append(b);
       list.append(li);
     }
@@ -475,7 +487,7 @@ function bookmarkNode(b) {
   const head = el('div', 'entry-head');
   const open = el('button', 'bookmark-word', b.w);
   open.type = 'button';
-  open.addEventListener('click', () => { els.q.value = b.w; search(b.w); });
+  open.addEventListener('click', () => { setQuery(b.w); search(b.w); });
   head.append(open);
   if (b.ja) head.append(el('span', 'bookmark-ja', b.ja));
   node.append(head);
@@ -597,7 +609,7 @@ function recentNode(v) {
   const head = el('div', 'entry-head');
   const open = el('button', 'bookmark-word', v.w);
   open.type = 'button';
-  open.addEventListener('click', () => { els.q.value = v.w; search(v.w); });
+  open.addEventListener('click', () => { setQuery(v.w); search(v.w); });
   head.append(open);
   if (v.ja) head.append(el('span', 'bookmark-ja', v.ja));
   head.append(el('span', 'recent-when', whenLabel(v.at)));
@@ -677,7 +689,7 @@ async function updateSuggest() {
     li.textContent = w;
     li.addEventListener('mousedown', (e) => {
       e.preventDefault();
-      els.q.value = w;
+      setQuery(w);
       search(w);
     });
     els.suggest.append(li);
@@ -689,9 +701,23 @@ async function updateSuggest() {
 
 let debounce;
 els.q.addEventListener('input', () => {
+  syncClearButton();
   clearTimeout(debounce);
   debounce = setTimeout(updateSuggest, 120);
 });
+
+// mousedown, not click: the input's blur would hide the suggestions first, and
+// preventing the default keeps the focus where the reader expects it.
+els.clearQuery.addEventListener('mousedown', (e) => e.preventDefault());
+els.clearQuery.addEventListener('click', () => {
+  setQuery('');
+  hideSuggest();
+  els.q.focus();
+});
+
+// Coming back with the back button restores the typed value without an input
+// event, so the button has to be told about it.
+addEventListener('pageshow', syncClearButton);
 els.q.addEventListener('blur', () => setTimeout(hideSuggest, 120));
 els.q.addEventListener('keydown', (e) => { if (e.key === 'Escape') hideSuggest(); });
 
@@ -704,7 +730,7 @@ els.form.addEventListener('submit', (e) => {
 document.addEventListener('click', (e) => {
   const chip = e.target.closest('.chip[data-word]');
   if (!chip) return;
-  els.q.value = chip.dataset.word;
+  setQuery(chip.dataset.word);
   search(chip.dataset.word);
 });
 

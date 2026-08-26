@@ -28,9 +28,12 @@
 <main>
   <form id="searchForm" class="search" role="search" autocomplete="off">
     <label class="sr-only" for="q">英単語を検索</label>
-    <input id="q" type="search" inputmode="latin" autocapitalize="none" autocorrect="off"
-           spellcheck="false" placeholder="英単語を入力（例：run, beautiful）"
-           aria-describedby="tagline" aria-controls="results">
+    <div class="search-field">
+      <input id="q" type="search" inputmode="latin" autocapitalize="none" autocorrect="off"
+             spellcheck="false" placeholder="英単語を入力（例：run, beautiful）"
+             aria-describedby="tagline" aria-controls="results">
+      <button id="clearQuery" type="button" class="clear-btn" aria-label="入力を消去" hidden>×</button>
+    </div>
     <button type="submit" class="icon-btn search-btn" aria-label="検索">🔍</button>
     <ul id="suggest" class="suggest" role="listbox" hidden></ul>
   </form>
