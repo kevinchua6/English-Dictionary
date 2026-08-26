@@ -254,10 +254,16 @@ for (const [b, docs] of shards) {
   manifest[b] = Object.keys(docs).length;
 }
 
+const builtAt = new Date().toISOString();
+
 fs.writeFileSync(
   path.join(OUT_DIR, 'manifest.json'),
   JSON.stringify({
-    generated: new Date().toISOString().slice(0, 10),
+    generated: builtAt.slice(0, 10),
+    // Full precision, unlike `generated`, because the client uses this to decide
+    // whether its cached shards belong to this build -- and two builds on the
+    // same day are the normal case while the extractors are being worked on.
+    build: builtAt,
     headwords: Object.values(manifest).reduce((a, b) => a + b, 0),
     minPrefix: MIN_PREFIX,
     maxPrefix: MAX_PREFIX,

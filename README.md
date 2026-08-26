@@ -141,6 +141,13 @@ oversized. The service worker precaches the app shell and caches shards as they
 are used, so words a reader actually looks up stay available offline without
 downloading the full 85 MB.
 
+Cached shards belong to the build that produced them. `npm run build` stamps
+`build` into `web/dict/manifest.json`, the client remembers the stamp of the
+shards it has cached, and a mismatch drops the shard caches before the first
+lookup. The manifest is the one file the service worker fetches network-first,
+so the stamp is visible on the next load rather than the one after it. Bumping
+`VERSION` in `web/sw.js` still works and additionally replaces the app shell.
+
 ## Deploying
 
 `web/` is the whole site — any static host works. Two server-side notes:

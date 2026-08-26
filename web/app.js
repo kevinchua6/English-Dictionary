@@ -40,6 +40,29 @@ const WN_POS = { n: '名詞', v: '動詞', a: '形容詞', s: '形容詞', r: '�
 
 /* ---------------------------------------------------------------- loading */
 
+/** Where the build stamp of the shards currently in the cache is remembered. */
+const BUILD_KEY = 'dictBuild';
+
+/**
+ * A rebuild rewrites the shards in place, and the service worker treats them as
+ * immutable -- so a word looked up before the rebuild would keep showing its old
+ * entry until sw.js bumps VERSION. Remembering which build the cached shards came
+ * from closes that gap: the manifest is fetched network-first, so a changed stamp
+ * is visible on the very next load, and dropping the shard caches is enough to
+ * fix it. Cheap on a first visit, where there is nothing to delete.
+ */
+async function purgeStaleShards(build) {
+  if (localStorage.getItem(BUILD_KEY) === build) return;
+  try {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter((k) => k.startsWith('dict-')).map((k) => caches.delete(k)));
+  } catch {
+    // No CacheStorage (private mode, or plain http on a non-localhost host).
+    // Nothing is cached in that case either, so there is nothing to recover from.
+  }
+  localStorage.setItem(BUILD_KEY, build);
+}
+
 async function boot() {
   const [m, t, irr] = await Promise.all([
     fetch(`${DICT}/manifest.json`).then((r) => r.json()),
@@ -51,6 +74,10 @@ async function boot() {
   delete irr._comment;
   irregular = irr;
   els.dictDate.textContent = `データ更新: ${m.generated}`;
+
+  // Before the first shard is fetched. `generated` is the fallback for a
+  // manifest built before the stamp existed -- correct, just day-granular.
+  await purgeStaleShards(m.build ?? m.generated);
 
   const initial = new URLSearchParams(location.search).get('q');
   if (initial) {
