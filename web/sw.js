@@ -23,6 +23,7 @@ const SHELL_FILES = [
   'app.js',
   'search-core.js',
   'bookmarks.js',
+  'history.js',
   'speech.js',
   'tags.json',
   'irregular.json',

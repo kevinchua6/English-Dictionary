@@ -8,6 +8,8 @@
 
 import { normalise, shardFor, lookup, variants, shardFile } from './search-core.js';
 import * as bookmarks from './bookmarks.js';
+// Trailing underscore: `history` is window.history, which search() still uses.
+import * as history_ from './history.js';
 import * as speech from './speech.js';
 
 const DICT = 'dict';
@@ -24,6 +26,11 @@ const els = {
   bookmarksToggle: document.getElementById('bookmarksToggle'),
   bookmarkCount: document.getElementById('bookmarkCount'),
   bookmarks: document.getElementById('bookmarks'),
+  recent: document.getElementById('recent'),
+  recentList: document.getElementById('recentList'),
+  recentCount: document.getElementById('recentCount'),
+  moreRecent: document.getElementById('moreRecent'),
+  clearHistory: document.getElementById('clearHistory'),
   bookmarkList: document.getElementById('bookmarkList'),
   bookmarksEmpty: document.getElementById('bookmarksEmpty'),
   exportBookmarks: document.getElementById('exportBookmarks'),
@@ -106,7 +113,7 @@ async function search(rawInput) {
   if (!query) {
     els.results.innerHTML = '';
     els.status.textContent = '';
-    els.welcome.hidden = false;
+    showWelcome();
     return;
   }
 
@@ -122,8 +129,15 @@ async function search(rawInput) {
   const hit = await lookup({ manifest, irregular, loadShard }, rawInput);
   els.status.textContent = '';
 
-  if (hit) render(hit.doc, hit.corrected ? hit.query : null);
-  else await renderNotFound(query);
+  if (hit) {
+    // Recorded under the headword the lookup landed on, not what was typed, so
+    // "borrowed" and "borrow" are one row and every row can be searched again.
+    // A miss is not recorded: a typo is not something the reader wants to keep.
+    history_.add(hit.doc.w, previewJa(hit.doc));
+    render(hit.doc, hit.corrected ? hit.query : null);
+  } else {
+    await renderNotFound(query);
+  }
 }
 
 /* --------------------------------------------------------------- rendering */
@@ -476,7 +490,8 @@ function closeBookmarks() {
   if (els.bookmarks.hidden) return;
   els.bookmarks.hidden = true;
   els.results.hidden = false;
-  els.welcome.hidden = els.results.childNodes.length > 0;
+  if (els.results.childNodes.length) els.welcome.hidden = true;
+  else showWelcome();
   els.bookmarksToggle.setAttribute('aria-expanded', 'false');
   els.bookmarksToggle.setAttribute('aria-label', '単語帳を開く');
 }
@@ -518,6 +533,96 @@ els.clearBookmarks.addEventListener('click', () => {
 addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && !els.bookmarks.hidden) closeBookmarks();
 });
+
+/* --------------------------------------------------------- recent searches */
+
+/**
+ * The history is unbounded, so the home screen shows the newest handful and
+ * puts the rest one tap away. Nothing is discarded to keep the page short --
+ * the trimming is purely visual, and "もっと見る" undoes it.
+ */
+const RECENT_ROWS = 12;
+let recentExpanded = false;
+
+/** A date a reader can place at a glance, without a timestamp's precision. */
+function whenLabel(iso) {
+  const at = new Date(iso);
+  if (Number.isNaN(at.getTime())) return '';
+
+  const midnight = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const now = new Date();
+  const days = Math.round((midnight(now) - midnight(at)) / 86400000);
+  if (days <= 0) return '今日';
+  if (days === 1) return '昨日';
+
+  const md = `${at.getMonth() + 1}月${at.getDate()}日`;
+  return at.getFullYear() === now.getFullYear() ? md : `${at.getFullYear()}年${md}`;
+}
+
+function recentNode(v) {
+  const node = el('li', 'entry bookmark');
+
+  const head = el('div', 'entry-head');
+  const open = el('button', 'bookmark-word', v.w);
+  open.type = 'button';
+  open.addEventListener('click', () => { els.q.value = v.w; search(v.w); });
+  head.append(open);
+  if (v.ja) head.append(el('span', 'bookmark-ja', v.ja));
+  head.append(el('span', 'recent-when', whenLabel(v.at)));
+  node.append(head);
+
+  const drop = el('button', 'row-remove', '✕');
+  drop.type = 'button';
+  drop.title = '履歴から削除';
+  drop.setAttribute('aria-label', `「${v.w}」を履歴から削除`);
+  drop.addEventListener('click', () => {
+    history_.remove(v.w);
+    renderRecent();
+  });
+  node.append(drop);
+
+  return node;
+}
+
+function renderRecent() {
+  const list = history_.all();
+  els.recent.hidden = list.length === 0;
+  if (!list.length) {
+    recentExpanded = false;
+    els.recentList.innerHTML = '';
+    return;
+  }
+
+  const shown = recentExpanded ? list : list.slice(0, RECENT_ROWS);
+  els.recentList.innerHTML = '';
+  for (const v of shown) els.recentList.append(recentNode(v));
+
+  const rest = list.length - shown.length;
+  els.moreRecent.hidden = rest === 0;
+  els.moreRecent.textContent = `もっと見る（あと${rest}件）`;
+  els.recentCount.textContent = `全${list.length}件`;
+}
+
+/** The home screen, with the history refreshed each time it comes back. */
+function showWelcome() {
+  renderRecent();
+  els.welcome.hidden = false;
+}
+
+els.moreRecent.addEventListener('click', () => {
+  recentExpanded = true;
+  renderRecent();
+});
+
+els.clearHistory.addEventListener('click', () => {
+  if (!confirm('検索履歴をすべて削除します。よろしいですか？')) return;
+  history_.clear();
+  renderRecent();
+});
+
+// The home screen is what a first load shows, so the list is there immediately;
+// like the saved words, it needs no dictionary data to be correct.
+renderRecent();
 
 /* ------------------------------------------------------------ suggestions */
 

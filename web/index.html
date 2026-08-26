@@ -55,6 +55,18 @@
   </section>
 
   <section id="welcome" class="welcome">
+    <div id="recent" class="recent" hidden>
+      <div class="recent-head">
+        <h2 class="section-title">最近の検索</h2>
+        <button id="clearHistory" type="button" class="chip chip-danger">履歴を削除</button>
+      </div>
+      <ul id="recentList" class="entries bookmark-list"></ul>
+      <p class="recent-foot">
+        <button id="moreRecent" type="button" class="chip" hidden></button>
+        <span id="recentCount" class="note"></span>
+      </p>
+    </div>
+
     <h2>使いかた</h2>
     <p>英単語を入力すると、意味ごとに分けて日本語訳を表示します。語義の説明はすべて日本語です。</p>
     <p class="examples">

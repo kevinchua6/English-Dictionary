@@ -448,6 +448,55 @@ main {
 
 .bookmark-ja { color: var(--text-dim); font-size: 0.95rem; }
 
+/* --------------------------------------------------- recent searches (home) */
+
+.recent { margin-bottom: 2.5rem; }
+
+.recent-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+/* .welcome h2 would otherwise restyle this into a page heading; it is a section
+   label, and must match the one over the saved words. */
+.recent-head .section-title {
+  flex: 1;
+  margin: 0 0 0.75rem;
+  font-size: 0.78rem;
+  color: var(--text-faint);
+}
+
+.recent-when {
+  margin-left: auto;
+  color: var(--text-faint);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.recent-foot {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.75rem 0 0;
+}
+.recent-foot .note { margin-left: auto; }
+
+.row-remove {
+  flex: none;
+  align-self: center;
+  background: none;
+  border: 1px solid transparent;
+  color: var(--text-faint);
+  font-size: 0.9rem;
+  line-height: 1;
+  padding: 0.35rem 0.45rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.row-remove:hover { background: var(--surface-2); color: var(--danger); }
+
 /* ----------------------------------------------------------------- welcome */
 
 .welcome { margin-top: 2.5rem; color: var(--text-dim); }

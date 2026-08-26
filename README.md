@@ -86,6 +86,20 @@ It lives in `localStorage` and nowhere else. There is no account to attach it to
 and no server to sync it with, which is the point — but it also means the list is
 per-browser and clearing site data erases it, so the export is the backup.
 
+## Recent searches
+
+Every successful lookup is recorded, newest first, and shown on the home screen —
+the place a reader already lands between searches, so it needs no button of its
+own. Words are recorded under the headword the lookup resolved to, so `borrowed`
+and `borrow` are one row and every row is searchable again; a miss is not
+recorded, since a typo is not worth keeping.
+
+The list is deliberately uncapped: the value of a history is finding the word you
+half-remember from months ago. Only the home screen trims, showing the newest 12
+with the rest one tap behind もっと見る. The single thing that can actually
+discard entries is the browser's storage quota, and `history.js` responds by
+shedding the oldest half rather than by imposing a cap up front.
+
 ## Layout
 
 ```
@@ -118,6 +132,7 @@ npm run check:tags    # all 266 JMdict tags have a Japanese label
 npm run check:index   # all 346,355 headwords resolve to the shard they live in
 npm run test:e2e      # search + example assertions over HTTP (needs `npm run serve`)
 npm run test:bookmarks # saved-words store, against a localStorage stub
+npm run test:history  # recent-searches store, against a localStorage stub
 npm run lookup run    # inspect one entry from the built index
 ```
 
